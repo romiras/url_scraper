@@ -26,6 +26,28 @@
               },
               ],
               "updated_time": "2018-02-18T03:41:09+0000",
-	            "scrape_status": "done",
+              "scrape_status": "done",
               "id": "10150237978467733"
           }
+
+Usage
+
+# POST story
+
+curl -X POST \
+  'http://api_host/stories?url=http%3A%2F%2Fogp.me%2F' \
+  -H 'Content-Type: application/json'
+
+
+# GET story by ID
+
+curl -X GET \
+  http://api_host/stories/1 \
+  -H 'Content-Type: application/json'
+
+
+Examples of URLs for scraping OpenGraph tags
+
+http://ogp.me/
+https://blog.codeship.com/
+https://en.wordpress.com/
