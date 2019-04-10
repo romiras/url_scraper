@@ -72,7 +72,7 @@ end
 
 def get_story(canonical_url_id)
 	story = Story.find(canonical_url_id)
-	scrape_info = story.ogp_tags
+	scrape_info = story.ogp_tags || {}
 	scrape_info[:id] = story.id
 	scrape_info[:updated_time] = story.updated_at
 	scrape_info[:scrape_status] = story.get_scrape_status
