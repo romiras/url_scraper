@@ -3,5 +3,15 @@ require 'bundler'
 
 Bundler.require 
 
-require_relative './app'
-run App
+require 'resque'
+require 'resque/server'
+
+require './app'
+
+use Rack::ShowExceptions
+
+# run App
+run Rack::URLMap.new \
+     "/" => App.new,
+     "/resque" => Resque::Server.new
+

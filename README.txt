@@ -7,11 +7,11 @@
       1. Request
          1. POST api_host/stories?url={some_url}
       2. Response
-         1. An ID representing the canonical URL of the given url (each canonical url should have a single matching id in the system) 
+         1. An ID representing the scrape job of the given url. Each canonical url should have a single matching id in the system.
       3. Request
          1. GET api_host/stories/{canonical-url-id}
       4. Response
-         1. scrape_status field can be (done,error,pending)
+         1. scrape_status field can be (queued,pending,done,error)
          2. {
               "url": "http://ogp.me/",
               "type": "website",

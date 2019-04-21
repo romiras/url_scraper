@@ -1,4 +1,7 @@
+require 'faraday'
 require 'nokogiri'
+require 'ogp'
+
 module Scraper
 	
 	def self.crawl_url(url)
@@ -21,7 +24,7 @@ module Scraper
 	end
 
 	def self.get_opengraph_tags(body)
-		og = OGP::OpenGraph.new(body)
+		og = OGP::OpenGraph.new(body, allow_missing_attributes: true)
 		{
 			url:   og.url,
 			title: og.title,
@@ -32,3 +35,4 @@ module Scraper
 		{}
 	end
 end
+

@@ -1,8 +1,9 @@
 require 'sinatra/activerecord/rake'
+require 'resque/tasks'
+require './app'
 
-# require './app'
 namespace :db do
 	task :load_config do
-		require "./app"
 	end
 end
+

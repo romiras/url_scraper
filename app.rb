@@ -4,6 +4,7 @@ require 'sinatra/custom_logger'
 require 'logger'
 require './scraper'
 require './models'
+require './scraper_queue'
 
 set :database, { adapter: "sqlite3", database: "scraper.sqlite3" }
 
@@ -21,35 +22,22 @@ class App < Sinatra::Base
 		url = params[:url]
 		logger.info "url: #{url}"
 		if url =~ /^https?:\/\// # basic check of valid URL
-			Scraper.crawl_url(url) do |success, body|
-				if success
-					canonical_url = Scraper.get_canonical_url(body) || url
-					story = Story.where(canonical_url: canonical_url).take
-
-					if !story || story&.scrape_status == Story::STATUS_ERROR
-						opengraph_tags = Scraper.get_opengraph_tags(body)
-						scrape_status = Story::STATUS_DONE
-
-						story = Story.create(
-							canonical_url: canonical_url,
-							scrape_status: scrape_status,
-							ogp_tags: opengraph_tags
-						)
-					end
-					json({
-						id: story.id
-					})
-				else
-					story = Story.create(
-						canonical_url: url,
-						scrape_status: Story::STATUS_ERROR,
-						ogp_tags: nil
-					)
-					json({
-						error: "Scrape error"
-					})
-				end
+			scraper_job = ScraperJob.find_by(url: url)
+			if !scraper_job
+				logger.debug "--> !scraper_job"
+				scraper_job = ScraperJob.create!(
+					url: url,
+					scrape_status: ScraperJob::STATUS_QUEUED
+				)
+				Resque.enqueue(ScraperQueue, url)
+			elsif scraper_job.scrape_status == ScraperJob::STATUS_ERROR
+				logger.debug "--> scraper_job.err"
+				scraper_job.update!(scrape_status: ScraperJob::STATUS_QUEUED)
+				Resque.enqueue(ScraperQueue, url)
 			end
+			json({
+				id: scraper_job.id
+			})
 		else
 			json({
 				error: "Invalid url format"
@@ -57,25 +45,40 @@ class App < Sinatra::Base
 		end
 	end
 
-	get '/stories/:canonical_url_id' do
-		logger.info "canonical_url_id: #{params[:canonical_url_id]}"
+	get '/stories/:scraper_job_id' do
+		logger.info "scraper_job_id: #{params[:scraper_job_id]}"
 		begin
-			scrape_info = get_story(params[:canonical_url_id])
-			json(scrape_info)		
+			scraper_job = ScraperJob.find(params[:scraper_job_id])
+			if scraper_job.scrape_status == ScraperJob::STATUS_DONE
+				story = scraper_job.story
+				if story
+					scrape_info = get_scrape_info(story)
+					scrape_info[:scrape_status] = scraper_job.get_scrape_status
+					json(scrape_info)
+				else
+					json({
+						error: "Not processed yet"
+					})
+				end
+			else
+				json({
+					error: "Not processed yet"
+				})
+			end
 		rescue ActiveRecord::RecordNotFound => e
 			json({
-				error: "Not found by canonical_url_id"
-			})			
+				error: "Not found by id"
+			})
 		end
 	end
 end
 
-def get_story(canonical_url_id)
-	story = Story.find(canonical_url_id)
+
+def get_scrape_info(story)
 	scrape_info = story.ogp_tags || {}
 	scrape_info[:id] = story.id
 	scrape_info[:updated_time] = story.updated_at
-	scrape_info[:scrape_status] = story.get_scrape_status
 	scrape_info[:url] ||= story.canonical_url
 	scrape_info
 end
+

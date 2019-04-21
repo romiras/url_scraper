@@ -10,11 +10,19 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2019_04_09_184056) do
+ActiveRecord::Schema.define(version: 2019_04_14_203135) do
+
+  create_table "scraper_jobs", force: :cascade do |t|
+    t.string "url", null: false
+    t.integer "story_id"
+    t.integer "scrape_status", default: 0, null: false
+    t.datetime "created_at"
+    t.datetime "updated_at"
+    t.index ["url"], name: "index_scraper_jobs_on_url", unique: true
+  end
 
   create_table "stories", force: :cascade do |t|
     t.string "canonical_url", null: false
-    t.integer "scrape_status", default: 0, null: false
     t.string "ogp_tags"
     t.datetime "created_at"
     t.datetime "updated_at"
